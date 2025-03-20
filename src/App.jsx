@@ -46,6 +46,7 @@ import ScienceIcon from '@mui/icons-material/Science';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CloseIcon from '@mui/icons-material/Close';
+import outputData from './output.json';
 
 // Add print styles
 const PrintableContent = styled('div')(({ theme }) => ({
@@ -250,10 +251,25 @@ function App() {
   });
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
+    try {
+      // output.json से डेटा पार्स करें
+      const parsedResults = JSON.parse(outputData.inference_results.replace(/'/g, '"'));
+      console.log('Parsed Results:', parsedResults); // डीबग के लिए
+      
+      // बाउंडिंग बॉक्स डेटा सेट करें
+      setDetectionResults(parsedResults);
+      
+    } catch (error) {
+      console.error('Error parsing output.json:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    // चेक करें कि इमेज लोड हो रही है या नहीं
+    const img = new Image();
+    img.onload = () => console.log('Image loaded successfully');
+    img.onerror = () => console.error('Error loading image');
+    img.src = '/test.jpeg'; // इमेज का सही पाथ डालें
   }, []);
 
   const getColorForCellType = (cellType) => {
@@ -261,7 +277,7 @@ function App() {
   };
 
   const renderDetectionBoxes = () => {
-    if (!showOverlay || !detectionResults.length) return null;
+    if (!detectionResults.length) return null;
     
     return (
       <div style={{ 
@@ -270,16 +286,10 @@ function App() {
         left: 0, 
         width: '100%', 
         height: '100%', 
-        pointerEvents: 'none',
-        transformOrigin: '0 0',
-        transform: `scale(${1/scale})`
+        pointerEvents: 'none'
       }}>
         {detectionResults.map((result, index) => {
       const [x1, y1, x2, y2, cellType] = result;
-          const isHovered = hoveredCell === index;
-          const isSelected = selectedCell === index;
-          const color = getColorForCellType(cellType);
-          
           return (
             <div key={index}>
               <div 
@@ -289,40 +299,12 @@ function App() {
         top: `${y1}px`,
         width: `${x2 - x1}px`,
         height: `${y2 - y1}px`,
-                  border: `2px solid ${color}`,
-                  backgroundColor: isHovered || isSelected ? `${color}22` : 'transparent',
-                  transition: 'all 0.2s ease-in-out',
-                  pointerEvents: 'auto',
-                  cursor: 'pointer',
+                  border: '1px solid #FF0000',
+                  backgroundColor: 'transparent',
                   boxSizing: 'border-box',
-                  zIndex: isHovered || isSelected ? 2 : 1,
-                  borderRadius: '2px'
+                  zIndex: 1000
                 }}
-                onMouseEnter={() => setHoveredCell(index)}
-                onMouseLeave={() => setHoveredCell(null)}
-                onClick={() => setSelectedCell(index === selectedCell ? null : index)}
               />
-              {(showLabels && (isHovered || isSelected || scale > 2)) && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: `${y2 + 2}px`,
-                    left: `${x1}px`,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    transform: `scale(${scale})`,
-                    transformOrigin: 'top left',
-                    whiteSpace: 'nowrap',
-                    zIndex: 3,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                  }}
-                >
-                  {cellType.replace('_', ' ')}
-                </div>
-              )}
             </div>
           );
         })}
